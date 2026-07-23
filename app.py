@@ -84,7 +84,7 @@ if 'show_chat' not in st.session_state: st.session_state.show_chat = False
 # --- PANTALLA LEGAL ---
 if not st.session_state.terms:
     st.title("⚖️ Condiciones de Uso")
-    st.error("AVISO LEGAL - CURSO UNIA")
+    st.error("AVISO LEGAL")
     st.write('Esta web-app nace como un ejercicio práctico desarrollado con IA para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO ES ASESORÍA FINANCIERA. El creador se exime de cualquier responsabilidad por su uso.')
     if st.button("ACEPTO LAS CONDICIONES"):
         st.session_state.terms = True
