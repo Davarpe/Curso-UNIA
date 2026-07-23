@@ -9,10 +9,22 @@ import io
 # --- CONFIGURACIÓN E INTERFAZ ---
 st.set_page_config(page_title="IA Market Research Pro", layout="wide", page_icon="📈")
 
-# --- CSS: OPTIMIZACIÓN RESPONSIVA (MÓVILES Y TABLETS) ---
+# --- CSS: OPTIMIZACIÓN RESPONSIVA Y ARREGLO DE HELP TEXTS ---
 st.markdown("""
     <style>
-    /* Leyenda inferior izquierda ajustable */
+    /* 1. SOLUCIÓN AL CORTE DE TEXTOS DE AYUDA (HELP) */
+    div[data-testid="stTooltipContent"] {
+        max-width: 250px !important;
+        word-wrap: break-word !important;
+        white-space: normal !important;
+    }
+
+    /* Asegura que el icono de ayuda sea visible */
+    div[data-testid="stTooltipHoverTarget"] {
+        display: inline-block;
+    }
+
+    /* 2. LEYENDA INFERIOR */
     .footer-ia {
         position: fixed;
         left: 10px;
@@ -25,13 +37,13 @@ st.markdown("""
         border-radius: 3px;
     }
 
-    /* Burbuja de Chat Flotante Responsiva */
+    /* 3. BURBUJA DE CHAT RESPONSIVA */
     [data-testid="stVerticalBlock"] > div:has(div.floating-chat-box) {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 380px; /* Ancho en escritorio */
-        max-width: 90vw; /* Ancho máximo en móviles (90% del ancho de pantalla) */
+        width: 380px;
+        max-width: 85vw;
         background-color: #1E1E1E;
         border: 1px solid #4A90E2;
         border-radius: 15px;
@@ -40,21 +52,19 @@ st.markdown("""
         box-shadow: 0px 10px 30px rgba(0,0,0,0.8);
     }
 
-    /* Ajustes específicos para pantallas pequeñas (móviles) */
     @media (max-width: 768px) {
         [data-testid="stVerticalBlock"] > div:has(div.floating-chat-box) {
-            right: 5vw;
-            left: 5vw;
-            width: 90vw;
+            right: 7.5vw;
+            left: 7.5vw;
+            width: 85vw;
             bottom: 15px;
         }
-        /* Ajuste de márgenes para que el contenido principal no sea tapado por la burbuja */
         .main .block-container {
-            padding-bottom: 100px;
+            padding-bottom: 120px;
         }
     }
 
-    /* Mejora de legibilidad en tablas/código para móviles */
+    /* Mejora de legibilidad en móviles */
     pre {
         white-space: pre-wrap !important;
         word-break: break-word !important;
@@ -149,7 +159,7 @@ with st.sidebar:
 if menu == "📜 CRÉDITOS":
     st.title("📜 Créditos del Proyecto")
     st.subheader("Aplicación para análisis de valores financieros")
-    st.write('Esta es una herramienta desarrollada por David Ariza en Google AI Studio, usando 81183 tokens, para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO DEBE CONSIDERARSE COMO ASESORÍA FINANCIERA.')
+    st.write('Esta es una herramienta desarrollada por David Ariza en Google AI Studio, usando 91319 tokens, para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). La herramienta se optimizó para verse correctamente en ordenadores, tablets y móviles. NO DEBE CONSIDERARSE COMO ASESORÍA FINANCIERA.')
 
 elif menu in OPCIONES_REPORTE:
     st.title(menu)
