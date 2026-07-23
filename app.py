@@ -22,34 +22,34 @@ st.markdown("""
 def get_ticker_database():
     return {
         # --- TOP USA (Tecnología y S&P 500) ---
-        "AAPL - Apple Inc.": "AAPL", "TSLA - Tesla, Inc.": "TSLA", "NVDA - NVIDIA": "NVDA", 
-        "MSFT - Microsoft": "MSFT", "AMZN - Amazon": "AMZN", "GOOGL - Google": "GOOGL", 
+        "AAPL - Apple Inc.": "AAPL", "TSLA - Tesla, Inc.": "TSLA", "NVDA - NVIDIA": "NVDA",
+        "MSFT - Microsoft": "MSFT", "AMZN - Amazon": "AMZN", "GOOGL - Google": "GOOGL",
         "META - Meta/Facebook": "META", "NFLX - Netflix": "NFLX", "AMD - Advanced Micro Devices": "AMD",
-        "INTC - Intel Corp": "INTC", "BRK-B - Berkshire Hathaway": "BRK-B", "V - Visa": "V", 
+        "INTC - Intel Corp": "INTC", "BRK-B - Berkshire Hathaway": "BRK-B", "V - Visa": "V",
         "MA - Mastercard": "MA", "JPM - JPMorgan Chase": "JPM", "UNH - UnitedHealth": "UNH",
-        "DIS - Disney": "DIS", "PYPL - PayPal": "PYPL", "BAC - Bank of America": "BAC", 
+        "DIS - Disney": "DIS", "PYPL - PayPal": "PYPL", "BAC - Bank of America": "BAC",
         "XOM - Exxon Mobil": "XOM", "CVX - Chevron": "CVX", "COST - Costco": "COST",
-        
+
         # --- ESPAÑA (IBEX 35) ---
-        "SAN - Banco Santander": "SAN", "BBVA - BBVA": "BBVA", "TEF - Telefónica": "TEF", 
-        "ITX - Inditex (Zara)": "ITX", "IBE - Iberdrola": "IBE", "REP - Repsol": "REP", 
-        "AMS - Amadeus": "AMS", "CABK - CaixaBank": "CABK", "FER - Ferrovial": "FER", 
+        "SAN - Banco Santander": "SAN", "BBVA - BBVA": "BBVA", "TEF - Telefónica": "TEF",
+        "ITX - Inditex (Zara)": "ITX", "IBE - Iberdrola": "IBE", "REP - Repsol": "REP",
+        "AMS - Amadeus": "AMS", "CABK - CaixaBank": "CABK", "FER - Ferrovial": "FER",
         "GRF - Grifols": "GRF", "NTGY - Naturgy": "NTGY", "REE - Red Eléctrica": "REE",
-        
+
         # --- EUROPA (DAX, CAC, FTSE) ---
-        "ASML - ASML Holding": "ASML", "MC - LVMH": "MC.PA", "SAP - SAP SE": "SAP", 
-        "AIR - Airbus": "AIR.PA", "SIE - Siemens": "SIE.DE", "VOW3 - Volkswagen": "VOW3.DE", 
-        "ALV - Allianz": "ALV.DE", "OR - L'Oreal": "OR.PA", "TTE - TotalEnergies": "TTE", 
+        "ASML - ASML Holding": "ASML", "MC - LVMH": "MC.PA", "SAP - SAP SE": "SAP",
+        "AIR - Airbus": "AIR.PA", "SIE - Siemens": "SIE.DE", "VOW3 - Volkswagen": "VOW3.DE",
+        "ALV - Allianz": "ALV.DE", "OR - L'Oreal": "OR.PA", "TTE - TotalEnergies": "TTE",
         "HSBA - HSBC Holdings": "HSBA.L", "BP - BP PLC": "BP.L", "NESN - Nestlé": "NESN.SW",
-        
+
         # --- CRIPTOMONEDAS ---
-        "BTC - Bitcoin": "BTC-USD", "ETH - Ethereum": "ETH-USD", "SOL - Solana": "SOL-USD", 
-        "BNB - Binance Coin": "BNB-USD", "XRP - Ripple": "XRP-USD", "ADA - Cardano": "ADA-USD", 
+        "BTC - Bitcoin": "BTC-USD", "ETH - Ethereum": "ETH-USD", "SOL - Solana": "SOL-USD",
+        "BNB - Binance Coin": "BNB-USD", "XRP - Ripple": "XRP-USD", "ADA - Cardano": "ADA-USD",
         "DOT - Polkadot": "DOT-USD", "DOGE - Dogecoin": "DOGE-USD", "MATIC - Polygon": "MATIC-USD",
-        
+
         # --- ETFs E ÍNDICES ---
-        "SPY - SPDR S&P 500 ETF": "SPY", "QQQ - Invesco QQQ (Nasdaq 100)": "QQQ", 
-        "VTI - Vanguard Total Stock": "VTI", "EEM - MSCI Emerging Markets": "EEM", 
+        "SPY - SPDR S&P 500 ETF": "SPY", "QQQ - Invesco QQQ (Nasdaq 100)": "QQQ",
+        "VTI - Vanguard Total Stock": "VTI", "EEM - MSCI Emerging Markets": "EEM",
         "GLD - SPDR Gold Shares (Oro)": "GLD", "SLV - iShares Silver Trust (Plata)": "SLV",
         "^IBEX - IBEX 35 Index": "^IBEX", "^GSPC - S&P 500 Index": "^GSPC", "^IXIC - NASDAQ Composite": "^IXIC",
 
@@ -101,8 +101,8 @@ if 'terms' not in st.session_state: st.session_state.terms = False
 if not st.session_state.terms:
     st.title("⚖️ Condiciones de Uso")
     st.error("DEBE ACEPTAR PARA ACCEDER")
-    st.write("Esta app es una herramienta de investigación asistida por IA. No es asesoría financiera. El creador se exime de responsabilidad por el uso de los datos generados.")
-    if st.button("ACEPTO LAS CONDICIONES"):
+    st.write('Esta web-app es un ejercicio práctico desarrollado con IA por David Ariza para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas asistida por IA" organizado por la UNIA (www.unia.es). Esta web-app, por tanto, NO ES ASESORÍA FINANCIERA. El creador se exime de responsabilidad por el uso de los datos generados.')
+    if st.button("Entiendo y acepto que esto es un ejercicio y no una herramienta para inversores"):
         st.session_state.terms = True
         st.rerun()
     st.stop()
@@ -113,21 +113,21 @@ if 'chat' not in st.session_state: st.session_state.chat = []
 
 with st.sidebar:
     st.title("⚙️ Configuración")
-    prov = st.selectbox("Proveedor de IA:", ["Google Gemini (GRATIS)", "OpenAI / Otro"])
+    prov = st.selectbox("Proveedor de IA:", ["Google Gemini", "OpenAI / Otro"])
     key = st.text_input("API Key:", type="password")
-    
+
     st.divider()
     st.subheader("🔍 Buscador de Activos Globales")
-    
+
     # BUSCADOR CON AUTOCOMPLETADO DINÁMICO
     busqueda = st.selectbox(
         "Busca Empresa, Ticker, Cripto o ETF:",
         options=list(TICKERS_DB.keys()),
         help="Escribe para filtrar. Ejemplo: 'Banco', 'Apple', 'Bitcoin', 'Inditex'..."
     )
-    
+
     ticker_final = TICKERS_DB[busqueda]
-    
+
     if ticker_final == "MANUAL":
         ticker_final = st.text_input("Escribe el Ticker (ej: PFE, UBER, COIN):").upper()
     else:
