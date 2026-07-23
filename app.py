@@ -17,7 +17,6 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- BASE DE DATOS GLOBAL EXTENDIDA ---
-# Esta lista incluye los principales activos de S&P500, NASDAQ, IBEX35, DAX, CAC, Cripto y ETFs.
 @st.cache_data
 def get_ticker_database():
     return {
@@ -50,7 +49,7 @@ def get_ticker_database():
         # --- ETFs E ÍNDICES ---
         "SPY - SPDR S&P 500 ETF": "SPY", "QQQ - Invesco QQQ (Nasdaq 100)": "QQQ",
         "VTI - Vanguard Total Stock": "VTI", "EEM - MSCI Emerging Markets": "EEM",
-        "GLD - SPDR Gold Shares (Oro)": "GLD", "SLV - iShares Silver Trust (Plata)": "SLV",
+        "GLD - SPDR Gold Shares (Oro)": "GLD", "SLV - iShares Trust (Plata)": "SLV",
         "^IBEX - IBEX 35 Index": "^IBEX", "^GSPC - S&P 500 Index": "^GSPC", "^IXIC - NASDAQ Composite": "^IXIC",
 
         # --- OPCIÓN MANUAL ---
@@ -62,7 +61,7 @@ OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "�
 
 # --- LÓGICA IA ROBUSTA ---
 def llamar_ia_robusta(prompt, key, provider):
-    if provider == "Google Gemini (GRATIS)":
+    if provider == "Google Gemini":
         try:
             genai.configure(api_key=key)
             modelos = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods and 'gemini' in m.name]
@@ -107,19 +106,24 @@ if not st.session_state.terms:
         st.rerun()
     st.stop()
 
-# --- SIDEBAR (Buscador Global) ---
+# --- SIDEBAR (Configuración) ---
 if 'reports' not in st.session_state: st.session_state.reports = {opt: "" for opt in OPCIONES_REPORTE}
 if 'chat' not in st.session_state: st.session_state.chat = []
 
 with st.sidebar:
     st.title("⚙️ Configuración")
     prov = st.selectbox("Proveedor de IA:", ["Google Gemini", "OpenAI / Otro"])
-    key = st.text_input("API Key:", type="password")
+
+    # MODIFICACIÓN: Añadido parámetro 'help' con explicación y enlace
+    key = st.text_input(
+        "API Key:",
+        type="password",
+        help="Puedes insertar la API Key de cualquier servicio compatible (OpenAI, Gemini, etc.). Para conseguir tu API Key gratuita de Google Gemini, visita: [Google AI Studio](https://aistudio.google.com/app/apikey)"
+    )
 
     st.divider()
     st.subheader("🔍 Buscador de Activos Globales")
 
-    # BUSCADOR CON AUTOCOMPLETADO DINÁMICO
     busqueda = st.selectbox(
         "Busca Empresa, Ticker, Cripto o ETF:",
         options=list(TICKERS_DB.keys()),
