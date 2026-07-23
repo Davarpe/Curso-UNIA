@@ -90,22 +90,14 @@ OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "�
 
 # --- MOTOR IA ---
 def llamar_ia_automatica(prompt, key):
-    # Limpieza absoluta de la clave para evitar errores de pegado
+    # Limpieza de espacios
     key = str(key).strip()
 
     if not key: return "❌ Introduce tu API Key."
 
     try:
-        # Detección de claves de Google (Gemini)
-        # Se amplía la detección a 'AI' para cubrir variaciones de claves de Google AI Studio
-        if key.startswith("AIza") or key.startswith("AI"):
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(prompt)
-            return response.text
-
-        # Detección de claves de OpenAI
-        elif key.startswith("sk-"):
+        # Si la clave es de OpenAI (formato sk-...)
+        if key.startswith("sk-"):
             client = OpenAI(api_key=key)
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -113,8 +105,13 @@ def llamar_ia_automatica(prompt, key):
             )
             return response.choices[0].message.content
 
+        # Para cualquier otra clave (incluyendo las tuyas que empiezan por AQ. o AIza)
+        # se intenta procesar por el motor de Google Gemini
         else:
-            return f"❌ Formato de clave no reconocido. Tu clave empieza por '{key[:4]}...', pero debe empezar por 'AIza' (Google) o 'sk-' (OpenAI)."
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            return response.text
 
     except Exception as e:
         return f"❌ Error de conexión o API Key: {str(e)}"
