@@ -119,7 +119,7 @@ with st.sidebar:
 if menu == "📜 CRÉDITOS":
     st.title("📜 Créditos del Proyecto")
     st.subheader("Aplicación para análisis de valores financieros")
-    st.write('Esta es una herramienta desarrollada en Google AI Studio por David Ariza para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO DEBE CONSIDERARSE COMO ASESORÍA FINANCIERA. Se usaron 81183 tokens para la creación de la aplicación.')
+    st.write('Esta es una herramienta desarrollada por David Ariza en Google AI Studio, usando 81183 tokens, para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO DEBE CONSIDERARSE COMO ASESORÍA FINANCIERA.')
 
 # MODO ANÁLISIS INDIVIDUAL
 elif menu in OPCIONES_REPORTE:
