@@ -88,17 +88,14 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA ACTUALIZADO (ELIMINACIÓN DE RAZONAMIENTO) ---
+# --- MOTOR IA REFORZADO (ELIMINACIÓN TOTAL DE RAZONAMIENTO) ---
 def llamar_ia_automatica(prompt, key):
+    # Limpieza absoluta de espacios y saltos de línea en la clave
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    # Instrucción técnica externa para el comportamiento del modelo
-    instruccion_stricta = (
-        "Actúa como un analista financiero experto. Entrega directamente el resultado final. "
-        "Está TERMINANTEMENTE PROHIBIDO incluir razonamientos internos, pensamientos, planes de redacción, "
-        "preámbulos o auto-correcciones. Responde únicamente con el informe final en español."
-    )
+    # Instrucción de sistema extremadamente corta y seca
+    system_instruction = "Responde solo con el texto del informe en español. No pienses en voz alta. No des opciones. No saludes. No hagas preámbulos. Entrega directamente el contenido solicitado."
 
     try:
         # CASO OPENAI
@@ -107,45 +104,38 @@ def llamar_ia_automatica(prompt, key):
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": instruccion_stricta},
+                    {"role": "system", "content": system_instruction},
                     {"role": "user", "content": prompt}
-                ]
+                ],
+                temperature=0.1 # Baja creatividad para evitar el "pensamiento"
             )
             return response.choices[0].message.content
 
         # CASO GOOGLE
         else:
             genai.configure(api_key=key)
-            modelos_disponibles = []
-            try:
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        modelos_disponibles.append(m.name)
-            except:
-                modelos_disponibles = ['models/gemini-1.5-flash', 'models/gemini-pro']
+            # Lista de modelos de respaldo
+            modelos_disponibles = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
 
-            ultimo_error = ""
             for nombre_modelo in modelos_disponibles:
                 try:
-                    # Configuración técnica del modelo para ignorar razonamiento interno
+                    # Configuración estricta del modelo
                     model = genai.GenerativeModel(
                         model_name=nombre_modelo,
-                        system_instruction=instruccion_stricta
+                        system_instruction=system_instruction
                     )
-                    response = model.generate_content(prompt)
+                    # Usamos una configuración de generación para reducir la verbosidad
+                    response = model.generate_content(
+                        prompt,
+                        generation_config=genai.types.GenerationConfig(
+                            temperature=0.1,
+                        )
+                    )
                     return response.text
-                except Exception as e:
-                    # Fallback para versiones de API que no aceptan system_instruction
-                    try:
-                        model = genai.GenerativeModel(nombre_modelo)
-                        full_prompt = f"{instruccion_stricta}\n\nSOLICITUD: {prompt}"
-                        response = model.generate_content(full_prompt)
-                        return response.text
-                    except:
-                        ultimo_error = str(e)
-                        continue
+                except:
+                    continue
 
-            return f"❌ No se pudo conectar con ningún modelo de Google disponible. Error: {ultimo_error}"
+            return f"❌ Error: La clave no es válida para los modelos disponibles de Google."
 
     except Exception as e:
         return f"❌ Error crítico: {str(e)}"
@@ -213,7 +203,7 @@ elif menu in OPCIONES_REPORTE:
     st.title(menu)
     if st.button(f"GENERAR INFORME", use_container_width=True):
         with st.spinner(f"Analizando {ticker_final}..."):
-            st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
+            st.session_state.reports[menu] = llamar_ia_automatica(f"Realiza un {menu} para {ticker_final}", key)
 
     content = st.session_state.reports.get(menu, "")
     if content:
