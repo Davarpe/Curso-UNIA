@@ -53,7 +53,7 @@ def llamar_ia_automatica(prompt, key):
             return client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
         except Exception as e: return f"❌ Error OpenAI: {str(e)}"
     else:
-        return "❌ Formato de API Key no reconocido. (Use claves que empiecen por 'AIza' o 'sk-')."
+        return "❌ Formato de API Key no reconocido."
 
 # --- DOCUMENTOS DOCX ---
 def export_docx(text, title):
@@ -72,40 +72,62 @@ def export_docx(text, title):
     buf.seek(0)
     return buf
 
-# --- PANTALLA LEGAL ---
+# --- INICIALIZACIÓN DE ESTADOS ---
 if 'terms' not in st.session_state: st.session_state.terms = False
+if 'reports' not in st.session_state: st.session_state.reports = {opt: "" for opt in OPCIONES_REPORTE}
+if 'chat' not in st.session_state: st.session_state.chat = []
+if 'show_h' not in st.session_state: st.session_state.show_h = False
+if 'show_credits' not in st.session_state: st.session_state.show_credits = False
+
+# --- PANTALLA LEGAL ---
 if not st.session_state.terms:
     st.title("⚖️ Condiciones de Uso")
     st.error("DEBE ACEPTAR PARA ACCEDER")
     st.write('Esta web-app es un ejercicio práctico desarrollado con IA por David Ariza para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas asistida por IA" organizado por la UNIA (www.unia.es). Esta web-app, por tanto, NO ES ASESORÍA FINANCIERA. El creador se exime de responsabilidad por el uso de los datos generados.')
-    if st.button("Entiendo y acepto que esto es un ejercicio y no una herramienta para inversores"):
+    if st.button("Entiendo y acepto las condiciones"):
         st.session_state.terms = True
         st.rerun()
     st.stop()
 
-# --- SIDEBAR ---
-if 'reports' not in st.session_state: st.session_state.reports = {opt: "" for opt in OPCIONES_REPORTE}
-if 'chat' not in st.session_state: st.session_state.chat = []
-
+# --- SIDEBAR (CONFIGURACIÓN Y BOTONES) ---
 with st.sidebar:
     st.title("⚙️ Configuración")
-    key = st.text_input(
-        "Introduce tu API Key:",
-        type="password",
-        help="La web detectará automáticamente si es de Google Gemini o de OpenAI. Consigue tu clave gratis aquí: [Google AI Studio](https://aistudio.google.com/app/apikey)"
-    )
+    key = st.text_input("Introduce tu API Key:", type="password", help="Detecta Gemini (AIza) u OpenAI (sk-).")
+
     st.divider()
     st.subheader("🔍 Buscador de Activos")
-    busqueda = st.selectbox("Busca Empresa, Ticker, Cripto o ETF:", options=list(TICKERS_DB.keys()))
+    busqueda = st.selectbox("Busca Empresa o Ticker:", options=list(TICKERS_DB.keys()))
     ticker_final = TICKERS_DB[busqueda]
     if ticker_final == "MANUAL":
         ticker_final = st.text_input("Escribe el Ticker:").upper()
     else:
         st.info(f"Seleccionado: **{ticker_final}**")
+
     st.divider()
     menu = st.radio("Secciones de Informe:", OPCIONES_REPORTE + ["📂 COMPILACIÓN FINAL"])
 
-# --- LÓGICA DE INFORMES ---
+    st.divider()
+    # --- BOTONES EN PARALELO: ASISTENTE Y CRÉDITOS ---
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button("❓ ASISTENTE IA"):
+            st.session_state.show_h = not st.session_state.show_h
+            st.session_state.show_credits = False # Cierra créditos si abre chat
+    with col_btn2:
+        if st.button("📜 CRÉDITOS"):
+            st.session_state.show_credits = not st.session_state.show_credits
+            st.session_state.show_h = False # Cierra chat si abre créditos
+
+# --- LÓGICA DE CONTENIDO PRINCIPAL ---
+
+# 1. VISUALIZACIÓN DE CRÉDITOS (Si está activo)
+if st.session_state.show_credits:
+    st.header("📜 Créditos")
+    st.subheader("Lorem Ipsum")
+    st.write("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.")
+    st.divider()
+
+# 2. SECCIONES DE ANÁLISIS (Menú principal)
 if menu in OPCIONES_REPORTE:
     st.title(menu)
     if st.button(f"GENERAR INFORME"):
@@ -114,6 +136,7 @@ if menu in OPCIONES_REPORTE:
             with st.spinner(f"Analizando {ticker_final}..."):
                 res = llamar_ia_automatica(f"Realiza un {menu} para {ticker_final}.", key)
                 st.session_state.reports[menu] = res
+
     content = st.session_state.reports.get(menu, "")
     if content:
         st.subheader("VISUALIZADOR")
@@ -121,45 +144,36 @@ if menu in OPCIONES_REPORTE:
         d_btn = export_docx(content, f"{menu} - {ticker_final}")
         st.download_button(f"📥 DESCARGAR DOCX", d_btn, f"{ticker_final}_{menu}.docx")
 
-# --- COMPILACIÓN FINAL ---
+# 3. COMPILACIÓN FINAL
 elif menu == "📂 COMPILACIÓN FINAL":
-    st.title("📂 Informe Integral y Conclusiones")
+    st.title("📂 Informe Integral")
     if st.button("GENERAR COMPILACIÓN TOTAL"):
         todo = "\n\n".join([f"# {k}\n{v}" for k, v in st.session_state.reports.items() if v])
         if not todo: st.error("Genera informes primero.")
         else:
             with st.spinner("Compilando..."):
-                resumen = llamar_ia_automatica(f"Basado en estos informes de {ticker_final}:\n{todo}\n\nResume en 10 puntos clave y conclusiones.", key)
+                resumen = llamar_ia_automatica(f"Resumen de 10 puntos y conclusiones de:\n{todo}", key)
                 st.session_state.final = f"{todo}\n\n# RESUMEN Y CONCLUSIONES\n{resumen}"
+
     if 'final' in st.session_state:
         st.markdown(st.session_state.final)
         f_btn = export_docx(st.session_state.final, f"COMPLETO - {ticker_final}")
         st.download_button("📥 DESCARGAR INFORME COMPLETO", f_btn, f"COMPLETO_{ticker_final}.docx")
 
-# --- ASISTENTE IA Y CRÉDITOS ---
-with st.sidebar:
-    st.markdown("---")
-    if st.button("❓ ASISTENTE IA"): st.session_state.show_h = not st.session_state.get('show_h', False)
-
-if st.session_state.get('show_h'):
+# 4. ASISTENTE IA (Si está activo, aparece abajo del todo de la columna principal)
+if st.session_state.show_h:
     st.divider()
-
-    # --- COLUMNAS PARA TÍTULO Y CRÉDITOS ---
-    col_asistente, col_creditos = st.columns([2, 1])
-
-    with col_asistente:
-        st.header("💬 Asistente IA")
-
-    with col_creditos:
-        st.markdown("### Lorem Ipsum")
-        st.caption("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
-
-    expand = st.toggle("Modo Pantalla Completa")
+    st.header("💬 Asistente IA")
+    expand = st.toggle("Modo Pantalla Completa Chat")
     chat_box = st.container(height=600 if expand else 300)
     for m in st.session_state.chat: chat_box.chat_message(m["role"]).write(m["content"])
+
     if p := st.chat_input("Duda sobre " + ticker_final):
         st.session_state.chat.append({"role": "user", "content": p})
         chat_box.chat_message("user").write(p)
         ans = llamar_ia_automatica(p, key)
         st.session_state.chat.append({"role": "assistant", "content": ans})
         chat_box.chat_message("assistant").write(ans)
+
+    if st.session_state.chat:
+        st.download_button("Descargar Chat", "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat]), "chat.txt")
