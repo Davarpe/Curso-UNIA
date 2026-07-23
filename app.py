@@ -90,20 +90,34 @@ OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "�
 
 # --- MOTOR IA ---
 def llamar_ia_automatica(prompt, key):
-    # CORRECCIÓN: Se añade .strip() para eliminar espacios accidentales al pegar la clave
-    key = key.strip()
+    # Limpieza absoluta de la clave para evitar errores de pegado
+    key = str(key).strip()
 
     if not key: return "❌ Introduce tu API Key."
+
     try:
-        if key.startswith("AIza"):
+        # Detección de claves de Google (Gemini)
+        # Se amplía la detección a 'AI' para cubrir variaciones de claves de Google AI Studio
+        if key.startswith("AIza") or key.startswith("AI"):
             genai.configure(api_key=key)
             model = genai.GenerativeModel('gemini-1.5-flash')
-            return model.generate_content(prompt).text
+            response = model.generate_content(prompt)
+            return response.text
+
+        # Detección de claves de OpenAI
         elif key.startswith("sk-"):
             client = OpenAI(api_key=key)
-            return client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
-        return "❌ Formato de clave no reconocido."
-    except Exception as e: return f"❌ Error: {str(e)}"
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content
+
+        else:
+            return f"❌ Formato de clave no reconocido. Tu clave empieza por '{key[:4]}...', pero debe empezar por 'AIza' (Google) o 'sk-' (OpenAI)."
+
+    except Exception as e:
+        return f"❌ Error de conexión o API Key: {str(e)}"
 
 # --- EXPORTAR DOCX ---
 def export_docx(text, title):
