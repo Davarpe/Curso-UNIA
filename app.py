@@ -6,24 +6,17 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
 
 # Configuración de página
-st.set_page_config(page_title="IA Market Research", layout="wide")
+st.set_page_config(page_title="IA Market Research Universal", layout="wide")
 
-# --- CSS PARA ESTILOS ---
+# --- CSS ---
 st.markdown("""
     <style>
-    .footer-ia {
-        position: fixed;
-        left: 20px;
-        bottom: 20px;
-        font-size: 10px;
-        color: #888;
-        z-index: 100;
-    }
+    .footer-ia { position: fixed; left: 20px; bottom: 20px; font-size: 10px; color: #888; z-index: 100; }
     </style>
     <div class="footer-ia">GENERADO CON IA</div>
     """, unsafe_allow_html=True)
 
-# --- DEFINICIÓN DE MENÚS (Para que coincidan en todas partes) ---
+# --- MENÚS ---
 OPCIONES_INFORME = [
     "📊 Análisis Fundamental",
     "📈 Análisis Técnico",
@@ -32,14 +25,10 @@ OPCIONES_INFORME = [
     "🔮 Proyecciones y Valuación"
 ]
 
-# --- INICIALIZACIÓN DE ESTADOS ---
-if 'terms_accepted' not in st.session_state:
-    st.session_state.terms_accepted = False
-if 'reports' not in st.session_state:
-    # Inicializamos el diccionario con las llaves exactas del menú
-    st.session_state.reports = {opcion: "" for opcion in OPCIONES_INFORME}
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
+# --- ESTADO ---
+if 'terms_accepted' not in st.session_state: st.session_state.terms_accepted = False
+if 'reports' not in st.session_state: st.session_state.reports = {opcion: "" for opcion in OPCIONES_INFORME}
+if 'chat_history' not in st.session_state: st.session_state.chat_history = []
 
 # --- FUNCIONES ---
 def create_docx(text, title):
@@ -58,101 +47,101 @@ def create_docx(text, title):
     buffer.seek(0)
     return buffer
 
-def ask_ia(prompt, key):
+def ask_ia(prompt, key, base_url, model):
     try:
-        client = OpenAI(api_key=key)
+        # Aquí configuramos cualquier proveedor
+        client = OpenAI(api_key=key, base_url=base_url if base_url else None)
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=[{"role": "system", "content": "Eres un analista financiero experto."},
                       {"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"Error: Verifique su API Key o conexión. Detalle: {str(e)}"
+        return f"❌ ERROR: {str(e)}\n\n(Asegúrate de que la API Key y el modelo sean correctos para el proveedor seleccionado)"
 
-# --- 1. PANTALLA DE CONDICIONES ---
+# --- 1. CONDICIONES ---
 if not st.session_state.terms_accepted:
     st.title("⚖️ Condiciones de Uso")
-    with st.container(border=True):
-        st.write("""
-        **Descargo de responsabilidad:** El creador de esta aplicación no se hace responsable de las decisiones financieras tomadas. 
-        Los datos son generados por IA y pueden ser inexactos. El uso de esta herramienta es bajo su propio riesgo.
-        """)
+    st.warning("Debe aceptar para continuar.")
+    st.write("El creador no se hace responsable de las decisiones financieras. Los datos son generados por IA.")
     if st.button("ACEPTO LOS TÉRMINOS"):
         st.session_state.terms_accepted = True
         st.rerun()
     st.stop()
 
-# --- 2. SIDEBAR ---
+# --- 2. SIDEBAR CONFIGURACIÓN UNIVERSAL ---
 with st.sidebar:
-    st.title("⚙️ Configuración")
-    api_key = st.text_input("Introduce tu API Key:", type="password")
-    ticker = st.text_input("Ticker del Valor:", "AAPL").upper()
-    st.divider()
-    menu = st.radio("Seleccione Análisis:", OPCIONES_INFORME + ["📂 COMPILACIÓN TOTAL"])
+    st.title("⚙️ Configuración IA")
+    api_key = st.text_input("1. API Key:", type="password", placeholder="sk-...")
+    
+    # Esto permite que funcione con cualquier proveedor
+    provider = st.selectbox("2. Proveedor / URL:", [
+        "OpenAI (Predeterminado)", 
+        "OpenRouter (Cualquier IA)", 
+        "Groq", 
+        "Personalizado (Base URL)"
+    ])
+    
+    base_url = None
+    model = "gpt-4o-mini" # Modelo por defecto
+    
+    if provider == "OpenRouter (Cualquier IA)":
+        base_url = "https://openrouter.ai/api/v1"
+        model = "google/gemini-pro-1.5" # Ejemplo para OpenRouter
+    elif provider == "Groq":
+        base_url = "https://api.groq.com/openai/v1"
+        model = "llama3-8b-8192"
+    elif provider == "Personalizado (Base URL)":
+        base_url = st.text_input("Introduce la Base URL:")
+        model = st.text_input("Nombre del modelo:", value="gpt-3.5-turbo")
 
-# --- 3. LÓGICA DE MENÚS ---
+    st.divider()
+    ticker = st.text_input("Ticker del Valor:", "AAPL").upper()
+    menu = st.radio("Menú:", OPCIONES_INFORME + ["📂 COMPILACIÓN TOTAL"])
+
+# --- 3. LÓGICA ---
 if menu in OPCIONES_INFORME:
     st.title(menu)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("GENERACIÓN")
-        if st.button(f"Generar {menu}"):
-            if not api_key:
-                st.warning("Falta la API Key")
-            else:
-                with st.spinner("La IA está analizando..."):
-                    prompt = f"Haz un {menu} detallado para el valor {ticker}. Incluye datos clave y perspectivas."
-                    st.session_state.reports[menu] = ask_ia(prompt, api_key)
-    
-    with col2:
+    if st.button(f"🚀 GENERAR INFORME"):
+        if not api_key: st.error("Introduce la API Key")
+        else:
+            with st.spinner("IA trabajando..."):
+                st.session_state.reports[menu] = ask_ia(f"Análisis {menu} para {ticker}", api_key, base_url, model)
+
+    if st.session_state.reports.get(menu):
         st.subheader("VISUALIZADOR")
-        contenido = st.session_state.reports.get(menu, "")
-        if contenido:
-            st.markdown(contenido)
-            btn_docx = create_docx(contenido, f"{menu} - {ticker}")
-            st.download_button("📥 DESCARGAR DOCX", btn_docx, f"{ticker}_{menu}.docx")
-        else:
-            st.info("Haz clic en Generar para ver el informe.")
+        st.markdown(st.session_state.reports[menu])
+        btn = create_docx(st.session_state.reports[menu], f"{menu} {ticker}")
+        st.download_button("📥 DESCARGAR DOCX", btn, f"{ticker}_{menu}.docx")
 
-# --- 4. COMPILACIÓN ---
 elif menu == "📂 COMPILACIÓN TOTAL":
-    st.title("📂 Informe Compilado y Conclusiones")
-    if st.button("COMPILAR TODOS LOS INFORMES"):
-        textos_acumulados = "\n\n".join([f"--- {k} ---\n{v}" for k, v in st.session_state.reports.items() if v])
-        if not textos_acumulados:
-            st.error("No hay informes generados todavía.")
+    st.title("📂 Compilación")
+    if st.button("🔄 COMPILAR TODO"):
+        acumulado = "\n\n".join([f"## {k}\n{v}" for k, v in st.session_state.reports.items() if v])
+        if not acumulado: st.error("No hay informes previos.")
         else:
-            with st.spinner("Creando Resumen y Conclusiones..."):
-                prompt_comp = f"Basado en estos informes de {ticker}:\n{textos_acumulados}\n\nExtrae los 10 puntos más importantes y da una conclusión final de inversión."
-                resumen = ask_ia(prompt_comp, api_key)
-                st.session_state.compilacion_final = f"{textos_acumulados}\n\n{'='*20}\nRESUMEN EJECUTIVO (10 PUNTOS)\n{'='*20}\n{resumen}"
+            with st.spinner("Resumiendo..."):
+                res = ask_ia(f"Resume estos informes de {ticker} en 10 puntos y conclusiones:\n{acumulado}", api_key, base_url, model)
+                st.session_state.full_report = f"{acumulado}\n\n# RESUMEN Y CONCLUSIONES\n{res}"
+    
+    if 'full_report' in st.session_state:
+        st.markdown(st.session_state.full_report)
+        btn_f = create_docx(st.session_state.full_report, f"Compilado {ticker}")
+        st.download_button("📥 DESCARGAR COMPILACIÓN", btn_f, f"COMPLETO_{ticker}.docx")
 
-    if 'compilacion_final' in st.session_state:
-        st.markdown(st.session_state.compilacion_final)
-        btn_comp = create_docx(st.session_state.compilacion_final, f"INFORME INTEGRAL - {ticker}")
-        st.download_button("📥 DESCARGAR INFORME COMPLETO", btn_comp, f"COMPLETO_{ticker}.docx")
-
-# --- 5. AYUDA (IZQUIERDA INFERIOR) ---
+# --- 4. AYUDA ---
 with st.sidebar:
     st.markdown("---")
-    if st.button("❓ AYUDA / ASISTENTE IA"):
-        st.session_state.show_help = not st.session_state.get('show_help', False)
+    if st.button("❓ AYUDA"): st.session_state.show_help = not st.session_state.get('show_help', False)
 
 if st.session_state.get('show_help'):
-    with st.expander("ASISTENTE DE AYUDA IA", expanded=True):
-        chat_cont = st.container(height=300)
-        for m in st.session_state.chat_history:
-            chat_cont.chat_message(m["role"]).write(m["content"])
-        
-        if p := st.chat_input("Pregunta al asistente..."):
-            st.session_state.chat_history.append({"role": "user", "content": p})
-            chat_cont.chat_message("user").write(p)
-            r = ask_ia(f"Asistente de ayuda financiera: {p}", api_key)
-            st.session_state.chat_history.append({"role": "assistant", "content": r})
-            chat_cont.chat_message("assistant").write(r)
-        
-        if st.session_state.chat_history:
-            txt_chat = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat_history])
-            st.download_button("Descargar Chat", txt_chat, "chat.txt")
+    with st.expander("ASISTENTE IA", expanded=True):
+        chat_c = st.container(height=300)
+        for m in st.session_state.chat_history: chat_c.chat_message(m["role"]).write(m["content"])
+        if p := st.chat_input("Pregunta..."):
+            st.session_state.chat_history.append({"role":"user","content":p})
+            chat_c.chat_message("user").write(p)
+            r = ask_ia(p, api_key, base_url, model)
+            st.session_state.chat_history.append({"role":"assistant","content":r})
+            chat_c.chat_message("assistant").write(r)
