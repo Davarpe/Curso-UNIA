@@ -88,15 +88,13 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA ---
+# --- MOTOR IA ACTUALIZADO (AUTO-DETECCIÓN DE MODELO) ---
 def llamar_ia_automatica(prompt, key):
-    # Limpieza de espacios
     key = str(key).strip()
-
     if not key: return "❌ Introduce tu API Key."
 
     try:
-        # Si la clave es de OpenAI (formato sk-...)
+        # CASO OPENAI
         if key.startswith("sk-"):
             client = OpenAI(api_key=key)
             response = client.chat.completions.create(
@@ -105,16 +103,35 @@ def llamar_ia_automatica(prompt, key):
             )
             return response.choices[0].message.content
 
-        # Para cualquier otra clave (incluyendo las tuyas que empiezan por AQ. o AIza)
-        # se intenta procesar por el motor de Google Gemini
+        # CASO GOOGLE (Cualquier clave que no empiece por sk-)
         else:
             genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(prompt)
-            return response.text
+
+            # Buscamos dinámicamente qué modelos acepta tu clave para evitar el error 404
+            modelos_disponibles = []
+            try:
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        modelos_disponibles.append(m.name)
+            except:
+                # Si list_models falla, usamos una lista de respaldo
+                modelos_disponibles = ['models/gemini-1.5-flash', 'models/gemini-pro']
+
+            # Intentamos con los modelos encontrados hasta que uno funcione
+            ultimo_error = ""
+            for nombre_modelo in modelos_disponibles:
+                try:
+                    model = genai.GenerativeModel(nombre_modelo)
+                    response = model.generate_content(prompt)
+                    return response.text
+                except Exception as e:
+                    ultimo_error = str(e)
+                    continue
+
+            return f"❌ No se pudo conectar con ningún modelo de Google disponible. Error: {ultimo_error}"
 
     except Exception as e:
-        return f"❌ Error de conexión o API Key: {str(e)}"
+        return f"❌ Error crítico: {str(e)}"
 
 # --- EXPORTAR DOCX ---
 def export_docx(text, title):
