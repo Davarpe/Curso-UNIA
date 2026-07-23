@@ -97,23 +97,12 @@ with st.sidebar:
     key = st.text_input("API Key:", type="password", help="La web detectará automáticamente el proveedor de API Key. Si no sabes cómo conseguir la tuya, puedes hacerlo con tu cuenta de Google de manera gratuita aquí: [Google AI Studio](https://aistudio.google.com/app/apikey).")
 
     st.divider()
-st.subheader("🔍 Buscador")
-
-help_text = "Selecciona del menú desplegable o escribe para filtrar. Ejemplo: 'Banco', 'Apple', 'Bitcoin', 'Inditex'..."
-
-busqueda = st.selectbox(
-    "Activo:",
-    options=list(TICKERS_DB.keys()),
-    help=help_text
-)
-
-ticker_final = TICKERS_DB[busqueda]
-
-if ticker_final == "MANUAL":
-    ticker_final = st.text_input("Escribe Ticker:").upper()
-else:
-    st.info(f"Ticker: **{ticker_final}**")
-
+    st.subheader("🔍 Buscador")
+    help="Selecciona del menú desplegable o escribe por nombre o Ticker para filtrar. Ejemplo: 'Apple', 'Bitcoin', 'Inditex'..."
+    busqueda = st.selectbox("Activo:", options=list(TICKERS_DB.keys()))
+    ticker_final = TICKERS_DB[busqueda]
+    if ticker_final == "MANUAL": ticker_final = st.text_input("Escribe Ticker:").upper()
+    else: st.info(f"Ticker: **{ticker_final}**")
 
     st.divider()
     # CRÉDITOS se añade al final de la lista de navegación
