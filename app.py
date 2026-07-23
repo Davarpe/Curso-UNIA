@@ -88,10 +88,13 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA ACTUALIZADO (AUTO-DETECCIÓN DE MODELO) ---
+# --- MOTOR IA ACTUALIZADO (ELIMINACIÓN DE RAZONAMIENTO) ---
 def llamar_ia_automatica(prompt, key):
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
+
+    # Instrucción de sistema para obligar a dar solo la respuesta final
+    instruccion_sistema = "IMPORTANTE: Entrega directamente la respuesta final solicitada. No incluyas razonamientos internos, pensamientos, preámbulos ni auto-correcciones."
 
     try:
         # CASO OPENAI
@@ -99,34 +102,43 @@ def llamar_ia_automatica(prompt, key):
             client = OpenAI(api_key=key)
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}]
+                messages=[
+                    {"role": "system", "content": instruccion_sistema},
+                    {"role": "user", "content": prompt}
+                ]
             )
             return response.choices[0].message.content
 
-        # CASO GOOGLE (Cualquier clave que no empiece por sk-)
+        # CASO GOOGLE
         else:
             genai.configure(api_key=key)
-
-            # Buscamos dinámicamente qué modelos acepta tu clave para evitar el error 404
             modelos_disponibles = []
             try:
                 for m in genai.list_models():
                     if 'generateContent' in m.supported_generation_methods:
                         modelos_disponibles.append(m.name)
             except:
-                # Si list_models falla, usamos una lista de respaldo
                 modelos_disponibles = ['models/gemini-1.5-flash', 'models/gemini-pro']
 
-            # Intentamos con los modelos encontrados hasta que uno funcione
             ultimo_error = ""
             for nombre_modelo in modelos_disponibles:
                 try:
-                    model = genai.GenerativeModel(nombre_modelo)
+                    # Se configura el modelo con la instrucción de sistema
+                    model = genai.GenerativeModel(
+                        model_name=nombre_modelo,
+                        system_instruction=instruccion_sistema
+                    )
                     response = model.generate_content(prompt)
                     return response.text
                 except Exception as e:
-                    ultimo_error = str(e)
-                    continue
+                    # Fallback por si la versión de la librería no soporta system_instruction directamente
+                    try:
+                        model = genai.GenerativeModel(nombre_modelo)
+                        response = model.generate_content(f"{instruccion_sistema}\n\nSolicitud: {prompt}")
+                        return response.text
+                    except:
+                        ultimo_error = str(e)
+                        continue
 
             return f"❌ No se pudo conectar con ningún modelo de Google disponible. Error: {ultimo_error}"
 
