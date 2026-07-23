@@ -85,7 +85,7 @@ if 'show_chat' not in st.session_state: st.session_state.show_chat = False
 if not st.session_state.terms:
     st.title("⚖️ Condiciones de Uso")
     st.error("AVISO LEGAL - CURSO UNIA")
-    st.write('Esta web-app es un ejercicio práctico de David Ariza para el curso de la UNIA. No es asesoría financiera. El creador se exime de responsabilidad.')
+    st.write('Esta web-app nace como un ejercicio práctico desarrollado con IA para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO ES ASESORÍA FINANCIERA. El creador se exime de cualquier responsabilidad por su uso.')
     if st.button("ACEPTO LAS CONDICIONES"):
         st.session_state.terms = True
         st.rerun()
@@ -118,8 +118,8 @@ with st.sidebar:
 # MODO CRÉDITOS
 if menu == "📜 CRÉDITOS":
     st.title("📜 Créditos del Proyecto")
-    st.subheader("Lorem Ipsum Título")
-    st.write("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.")
+    st.subheader("Aplicación para análisis de valores financieros")
+    st.write('Esta es una herramienta desarrollada en Google AI Studio por David Ariza para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO DEBE CONSIDERARSE COMO ASESORÍA FINANCIERA. Se usaron 81183 tokens para la creación de la aplicación.')
 
 # MODO ANÁLISIS INDIVIDUAL
 elif menu in OPCIONES_REPORTE:
@@ -169,7 +169,7 @@ if st.session_state.show_chat:
         for m in st.session_state.chat:
             chat_h.chat_message(m["role"]).write(m["content"])
 
-        if p := st.chat_input("Pregunta sobre el mercado...", key="chat_input"):
+        if p := st.chat_input("Pregunta al asistente.", key="chat_input"):
             st.session_state.chat.append({"role": "user", "content": p})
             chat_h.chat_message("user").write(p)
             ans = llamar_ia_automatica(p, key)
