@@ -16,52 +16,27 @@ st.markdown("""
     <div class="footer-ia">GENERADO CON IA</div>
     """, unsafe_allow_html=True)
 
-# --- BASE DE DATOS GLOBAL EXTENDIDA ---
+# --- BASE DE DATOS GLOBAL ---
 @st.cache_data
 def get_ticker_database():
     return {
-        # --- TOP USA (Tecnología y S&P 500) ---
         "AAPL - Apple Inc.": "AAPL", "TSLA - Tesla, Inc.": "TSLA", "NVDA - NVIDIA": "NVDA",
         "MSFT - Microsoft": "MSFT", "AMZN - Amazon": "AMZN", "GOOGL - Google": "GOOGL",
         "META - Meta/Facebook": "META", "NFLX - Netflix": "NFLX", "AMD - Advanced Micro Devices": "AMD",
-        "INTC - Intel Corp": "INTC", "BRK-B - Berkshire Hathaway": "BRK-B", "V - Visa": "V",
-        "MA - Mastercard": "MA", "JPM - JPMorgan Chase": "JPM", "UNH - UnitedHealth": "UNH",
-        "DIS - Disney": "DIS", "PYPL - PayPal": "PYPL", "BAC - Bank of America": "BAC",
-        "XOM - Exxon Mobil": "XOM", "CVX - Chevron": "CVX", "COST - Costco": "COST",
-
-        # --- ESPAÑA (IBEX 35) ---
         "SAN - Banco Santander": "SAN", "BBVA - BBVA": "BBVA", "TEF - Telefónica": "TEF",
         "ITX - Inditex (Zara)": "ITX", "IBE - Iberdrola": "IBE", "REP - Repsol": "REP",
-        "AMS - Amadeus": "AMS", "CABK - CaixaBank": "CABK", "FER - Ferrovial": "FER",
-        "GRF - Grifols": "GRF", "NTGY - Naturgy": "NTGY", "REE - Red Eléctrica": "REE",
-
-        # --- EUROPA (DAX, CAC, FTSE) ---
-        "ASML - ASML Holding": "ASML", "MC - LVMH": "MC.PA", "SAP - SAP SE": "SAP",
-        "AIR - Airbus": "AIR.PA", "SIE - Siemens": "SIE.DE", "VOW3 - Volkswagen": "VOW3.DE",
-        "ALV - Allianz": "ALV.DE", "OR - L'Oreal": "OR.PA", "TTE - TotalEnergies": "TTE",
-        "HSBA - HSBC Holdings": "HSBA.L", "BP - BP PLC": "BP.L", "NESN - Nestlé": "NESN.SW",
-
-        # --- CRIPTOMONEDAS ---
         "BTC - Bitcoin": "BTC-USD", "ETH - Ethereum": "ETH-USD", "SOL - Solana": "SOL-USD",
-        "BNB - Binance Coin": "BNB-USD", "XRP - Ripple": "XRP-USD", "ADA - Cardano": "ADA-USD",
-        "DOT - Polkadot": "DOT-USD", "DOGE - Dogecoin": "DOGE-USD", "MATIC - Polygon": "MATIC-USD",
-
-        # --- ETFs E ÍNDICES ---
         "SPY - SPDR S&P 500 ETF": "SPY", "QQQ - Invesco QQQ (Nasdaq 100)": "QQQ",
-        "VTI - Vanguard Total Stock": "VTI", "EEM - MSCI Emerging Markets": "EEM",
-        "GLD - SPDR Gold Shares (Oro)": "GLD", "SLV - iShares Trust (Plata)": "SLV",
-        "^IBEX - IBEX 35 Index": "^IBEX", "^GSPC - S&P 500 Index": "^GSPC", "^IXIC - NASDAQ Composite": "^IXIC",
-
-        # --- OPCIÓN MANUAL ---
+        "GLD - SPDR Gold Shares (Oro)": "GLD", "^IBEX - IBEX 35 Index": "^IBEX",
         "➕ ESCRIBIR TICKER MANUALMENTE...": "MANUAL"
     }
 
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- LÓGICA IA ROBUSTA ---
-def llamar_ia_robusta(prompt, key, provider):
-    if provider == "Google Gemini":
+# --- DETECCIÓN AUTOMÁTICA DE PROVEEDOR ---
+def llamar_ia_automatica(prompt, key):
+    if key.startswith("AIza"):
         try:
             genai.configure(api_key=key)
             modelos = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods and 'gemini' in m.name]
@@ -70,13 +45,15 @@ def llamar_ia_robusta(prompt, key, provider):
                     model = genai.GenerativeModel(m_name)
                     return model.generate_content(prompt).text
                 except: continue
-            return "❌ No se pudo conectar con Gemini."
+            return "❌ No se pudo conectar con los modelos de Gemini."
         except Exception as e: return f"❌ Error Google: {str(e)}"
-    else:
+    elif key.startswith("sk-"):
         try:
             client = OpenAI(api_key=key)
             return client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
         except Exception as e: return f"❌ Error OpenAI: {str(e)}"
+    else:
+        return "❌ Formato de API Key no reconocido. (Use claves que empiecen por 'AIza' o 'sk-')."
 
 # --- DOCUMENTOS DOCX ---
 def export_docx(text, title):
@@ -106,88 +83,83 @@ if not st.session_state.terms:
         st.rerun()
     st.stop()
 
-# --- SIDEBAR (Configuración) ---
+# --- SIDEBAR ---
 if 'reports' not in st.session_state: st.session_state.reports = {opt: "" for opt in OPCIONES_REPORTE}
 if 'chat' not in st.session_state: st.session_state.chat = []
 
 with st.sidebar:
     st.title("⚙️ Configuración")
-    prov = st.selectbox("Proveedor de IA:", ["Google Gemini", "OpenAI / Otro"])
-
-    # MODIFICACIÓN: Añadido parámetro 'help' con explicación y enlace
     key = st.text_input(
-        "API Key:",
+        "Introduce tu API Key:",
         type="password",
-        help="Puedes insertar la API Key de cualquier servicio compatible (OpenAI, Gemini, etc.). Para conseguir tu API Key gratuita de Google Gemini, visita: [Google AI Studio](https://aistudio.google.com/app/apikey)"
+        help="La web detectará automáticamente si es de Google Gemini o de OpenAI. Consigue tu clave gratis aquí: [Google AI Studio](https://aistudio.google.com/app/apikey)"
     )
-
     st.divider()
-    st.subheader("🔍 Buscador de Activos Globales")
-
-    busqueda = st.selectbox(
-        "Busca Empresa, Ticker, Cripto o ETF:",
-        options=list(TICKERS_DB.keys()),
-        help="Escribe para filtrar. Ejemplo: 'Banco', 'Apple', 'Bitcoin', 'Inditex'..."
-    )
-
+    st.subheader("🔍 Buscador de Activos")
+    busqueda = st.selectbox("Busca Empresa, Ticker, Cripto o ETF:", options=list(TICKERS_DB.keys()))
     ticker_final = TICKERS_DB[busqueda]
-
     if ticker_final == "MANUAL":
-        ticker_final = st.text_input("Escribe el Ticker (ej: PFE, UBER, COIN):").upper()
+        ticker_final = st.text_input("Escribe el Ticker:").upper()
     else:
         st.info(f"Seleccionado: **{ticker_final}**")
-
     st.divider()
     menu = st.radio("Secciones de Informe:", OPCIONES_REPORTE + ["📂 COMPILACIÓN FINAL"])
 
 # --- LÓGICA DE INFORMES ---
 if menu in OPCIONES_REPORTE:
     st.title(menu)
-    if st.button(f"GENERAR INFORME DE {ticker_final}"):
-        if not key or not ticker_final:
-            st.error("Introduce la API Key y selecciona un Ticker.")
+    if st.button(f"GENERAR INFORME"):
+        if not key or not ticker_final: st.error("Faltan datos.")
         else:
-            with st.spinner(f"IA analizando {ticker_final} en mercados globales..."):
-                res = llamar_ia_robusta(f"Realiza un {menu} profundo y profesional para el activo {ticker_final}. Usa datos actuales de mercado.", key, prov)
+            with st.spinner(f"Analizando {ticker_final}..."):
+                res = llamar_ia_automatica(f"Realiza un {menu} para {ticker_final}.", key)
                 st.session_state.reports[menu] = res
-
-    st.subheader("VISUALIZADOR DE INFORME")
     content = st.session_state.reports.get(menu, "")
     if content:
+        st.subheader("VISUALIZADOR")
         st.markdown(content)
         d_btn = export_docx(content, f"{menu} - {ticker_final}")
-        st.download_button(f"📥 DESCARGAR {ticker_final}_{menu[:5]}.docx", d_btn, f"{ticker_final}_{menu}.docx")
+        st.download_button(f"📥 DESCARGAR DOCX", d_btn, f"{ticker_final}_{menu}.docx")
 
 # --- COMPILACIÓN FINAL ---
 elif menu == "📂 COMPILACIÓN FINAL":
     st.title("📂 Informe Integral y Conclusiones")
     if st.button("GENERAR COMPILACIÓN TOTAL"):
         todo = "\n\n".join([f"# {k}\n{v}" for k, v in st.session_state.reports.items() if v])
-        if not todo: st.error("No hay informes generados.")
+        if not todo: st.error("Genera informes primero.")
         else:
-            with st.spinner("Creando resumen final de mercados..."):
-                resumen = llamar_ia_robusta(f"Basado en estos informes de {ticker_final}:\n{todo}\n\nGenera un resumen de 10 puntos clave y conclusiones finales de inversión.", key, prov)
-                st.session_state.final = f"{todo}\n\n# RESUMEN EJECUTIVO Y CONCLUSIONES\n{resumen}"
-
+            with st.spinner("Compilando..."):
+                resumen = llamar_ia_automatica(f"Basado en estos informes de {ticker_final}:\n{todo}\n\nResume en 10 puntos clave y conclusiones.", key)
+                st.session_state.final = f"{todo}\n\n# RESUMEN Y CONCLUSIONES\n{resumen}"
     if 'final' in st.session_state:
         st.markdown(st.session_state.final)
-        f_btn = export_docx(st.session_state.final, f"COMPILADO - {ticker_final}")
-        st.download_button(f"📥 DESCARGAR INFORME COMPLETO ({ticker_final})", f_btn, f"COMPLETO_{ticker_final}.docx")
+        f_btn = export_docx(st.session_state.final, f"COMPLETO - {ticker_final}")
+        st.download_button("📥 DESCARGAR INFORME COMPLETO", f_btn, f"COMPLETO_{ticker_final}.docx")
 
-# --- ASISTENTE ---
+# --- ASISTENTE IA Y CRÉDITOS ---
 with st.sidebar:
     st.markdown("---")
     if st.button("❓ ASISTENTE IA"): st.session_state.show_h = not st.session_state.get('show_h', False)
 
 if st.session_state.get('show_h'):
     st.divider()
-    st.header("💬 Asistente IA de Mercados")
+
+    # --- COLUMNAS PARA TÍTULO Y CRÉDITOS ---
+    col_asistente, col_creditos = st.columns([2, 1])
+
+    with col_asistente:
+        st.header("💬 Asistente IA")
+
+    with col_creditos:
+        st.markdown("### Lorem Ipsum")
+        st.caption("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
+
     expand = st.toggle("Modo Pantalla Completa")
     chat_box = st.container(height=600 if expand else 300)
     for m in st.session_state.chat: chat_box.chat_message(m["role"]).write(m["content"])
     if p := st.chat_input("Duda sobre " + ticker_final):
         st.session_state.chat.append({"role": "user", "content": p})
         chat_box.chat_message("user").write(p)
-        ans = llamar_ia_robusta(p, key, prov)
+        ans = llamar_ia_automatica(p, key)
         st.session_state.chat.append({"role": "assistant", "content": ans})
         chat_box.chat_message("assistant").write(ans)
