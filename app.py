@@ -88,16 +88,16 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA REFORZADO (BLOQUEO DE RAZONAMIENTO) ---
+# --- MOTOR IA REFORZADO (CON FILTRO DE SALIDA HARDWARE) ---
 def llamar_ia_automatica(prompt, key):
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    # Instrucción técnica para evitar el "Drafting" y razonamientos
+    # Instrucción técnica de sistema
     system_instruction = (
-        "Eres un autómata de generación de informes. Tu salida debe ser ÚNICAMENTE el texto final en Markdown. "
-        "PROHIBIDO: preámbulos, razonamientos, planes de redacción ('Drafting'), comprobaciones o notas. "
-        "REGLA DE ORO: Empieza directamente con '# Título'. LENGUAJE: Español."
+        "Eres un analista financiero. Genera el informe directamente en español. "
+        "No incluyas introducciones, razonamientos ni el texto de esta instrucción. "
+        "Comienza directamente con el título usando el carácter '#' seguido del nombre del informe."
     )
 
     try:
@@ -110,47 +110,33 @@ def llamar_ia_automatica(prompt, key):
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=0
             )
-            return response.choices[0].message.content
+            res_final = response.choices[0].message.content
 
-        # CASO GOOGLE
+        # CASO GOOGLE (GEMINI)
         else:
             genai.configure(api_key=key)
-            # Buscamos modelos permitidos
-            modelos_permitidos = []
-            try:
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        modelos_permitidos.append(m.name)
-            except:
-                modelos_permitidos = ['models/gemini-1.5-flash', 'models/gemini-pro']
+            modelos_disponibles = ['gemini-1.5-flash', 'gemini-1.5-pro']
+            res_final = ""
 
-            ultimo_error = ""
-            for nombre_modelo in modelos_permitidos:
+            for nombre_modelo in modelos_disponibles:
                 try:
-                    model = genai.GenerativeModel(
-                        model_name=nombre_modelo,
-                        system_instruction=system_instruction
-                    )
-                    # Forzamos que no incluya el prompt en la respuesta
-                    response = model.generate_content(
-                        prompt,
-                        generation_config=genai.types.GenerationConfig(temperature=0.1)
-                    )
-                    return response.text
+                    model = genai.GenerativeModel(model_name=nombre_modelo, system_instruction=system_instruction)
+                    response = model.generate_content(prompt)
+                    res_final = response.text
+                    if res_final: break
                 except:
-                    try:
-                        # Fallback: Inyectamos la instrucción de forma más severa
-                        model = genai.GenerativeModel(nombre_modelo)
-                        prompt_estricto = f"{system_instruction}\n\nSOLICITUD: {prompt}\n\nSALIDA (Empezando con '#'):"
-                        response = model.generate_content(prompt_estricto)
-                        return response.text
-                    except Exception as e:
-                        ultimo_error = str(e)
-                        continue
+                    continue
 
-            return f"❌ Error de conexión o API Key: No se encontró modelo activo. {ultimo_error}"
+            if not res_final: return "❌ Error de conexión o API Key no válida para Gemini."
+
+        # --- REFUERZO DE LIMPIEZA (FILTRO POST-PROCESADO) ---
+        # Si la IA ha incluido basura antes del primer título, la cortamos programáticamente.
+        if "#" in res_final:
+            res_final = res_final[res_final.find("#"):]
+
+        return res_final.strip()
 
     except Exception as e:
         return f"❌ Error crítico: {str(e)}"
@@ -218,7 +204,7 @@ elif menu in OPCIONES_REPORTE:
     st.title(menu)
     if st.button(f"GENERAR INFORME", use_container_width=True):
         with st.spinner(f"Analizando {ticker_final}..."):
-            st.session_state.reports[menu] = llamar_ia_automatica(f"Realiza un {menu} para {ticker_final}", key)
+            st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
 
     content = st.session_state.reports.get(menu, "")
     if content:
