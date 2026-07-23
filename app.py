@@ -88,13 +88,12 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA REFORZADO (ELIMINACIÓN TOTAL DE RAZONAMIENTO) ---
+# --- MOTOR IA REFORZADO (ELIMINACIÓN TOTAL DE RAZONAMIENTO Y ERROR 404) ---
 def llamar_ia_automatica(prompt, key):
-    # Limpieza absoluta de espacios y saltos de línea en la clave
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    # Instrucción de sistema extremadamente corta y seca
+    # Instrucción de sistema para obligar a dar solo la respuesta final
     system_instruction = "Responde solo con el texto del informe en español. No pienses en voz alta. No des opciones. No saludes. No hagas preámbulos. Entrega directamente el contenido solicitado."
 
     try:
@@ -107,35 +106,37 @@ def llamar_ia_automatica(prompt, key):
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1 # Baja creatividad para evitar el "pensamiento"
+                temperature=0.1
             )
             return response.choices[0].message.content
 
         # CASO GOOGLE
         else:
             genai.configure(api_key=key)
-            # Lista de modelos de respaldo
-            modelos_disponibles = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
+            # Intentamos directamente con los dos nombres de modelos más estables del nivel gratuito
+            modelos_estables = ['gemini-1.5-flash', 'gemini-pro']
 
-            for nombre_modelo in modelos_disponibles:
+            ultimo_error = ""
+            for nombre_modelo in modelos_estables:
                 try:
-                    # Configuración estricta del modelo
+                    # Intentamos el método moderno con system_instruction
                     model = genai.GenerativeModel(
                         model_name=nombre_modelo,
                         system_instruction=system_instruction
                     )
-                    # Usamos una configuración de generación para reducir la verbosidad
-                    response = model.generate_content(
-                        prompt,
-                        generation_config=genai.types.GenerationConfig(
-                            temperature=0.1,
-                        )
-                    )
+                    response = model.generate_content(prompt)
                     return response.text
                 except:
-                    continue
+                    try:
+                        # Fallback: Inyectar instrucción en el prompt si el método anterior no es soportado
+                        model = genai.GenerativeModel(nombre_modelo)
+                        response = model.generate_content(f"{system_instruction}\n\nSolicitud: {prompt}")
+                        return response.text
+                    except Exception as e:
+                        ultimo_error = str(e)
+                        continue
 
-            return f"❌ Error: La clave no es válida para los modelos disponibles de Google."
+            return f"❌ Error de conexión o API Key: La clave no tiene acceso a modelos Gemini Flash o Pro. Revisa tu cuota en Google AI Studio."
 
     except Exception as e:
         return f"❌ Error crítico: {str(e)}"
@@ -203,7 +204,7 @@ elif menu in OPCIONES_REPORTE:
     st.title(menu)
     if st.button(f"GENERAR INFORME", use_container_width=True):
         with st.spinner(f"Analizando {ticker_final}..."):
-            st.session_state.reports[menu] = llamar_ia_automatica(f"Realiza un {menu} para {ticker_final}", key)
+            st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
 
     content = st.session_state.reports.get(menu, "")
     if content:
