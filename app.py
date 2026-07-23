@@ -88,16 +88,15 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA REFORZADO (CON FILTRO DE SALIDA HARDWARE) ---
+# --- MOTOR IA REFORZADO (BÚSQUEDA DINÁMICA DE MODELOS) ---
 def llamar_ia_automatica(prompt, key):
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    # Instrucción técnica de sistema
-    system_instruction = (
+    instruction = (
         "Eres un analista financiero. Genera el informe directamente en español. "
-        "No incluyas introducciones, razonamientos ni el texto de esta instrucción. "
-        "Comienza directamente con el título usando el carácter '#' seguido del nombre del informe."
+        "No incluyas introducciones ni razonamientos. "
+        "Empieza directamente con el título usando el carácter '#' seguido del nombre del informe."
     )
 
     try:
@@ -106,33 +105,38 @@ def llamar_ia_automatica(prompt, key):
             client = OpenAI(api_key=key)
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": prompt}
-                ],
+                messages=[{"role": "system", "content": instruction}, {"role": "user", "content": prompt}],
                 temperature=0
             )
             res_final = response.choices[0].message.content
 
-        # CASO GOOGLE (GEMINI)
+        # CASO GOOGLE (GEMINI) - BÚSQUEDA DINÁMICA
         else:
             genai.configure(api_key=key)
-            modelos_disponibles = ['gemini-1.5-flash', 'gemini-1.5-pro']
-            res_final = ""
 
-            for nombre_modelo in modelos_disponibles:
+            # Intentamos obtener la lista de modelos que soporta la clave
+            try:
+                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                # Priorizamos flash si existe
+                available_models.sort(key=lambda x: "flash" in x, reverse=True)
+            except:
+                # Si falla el listado, usamos nombres estándar
+                available_models = ['models/gemini-1.5-flash', 'models/gemini-pro']
+
+            res_final = ""
+            for model_name in available_models:
                 try:
-                    model = genai.GenerativeModel(model_name=nombre_modelo, system_instruction=system_instruction)
-                    response = model.generate_content(prompt)
+                    model = genai.GenerativeModel(model_name)
+                    # Combinamos la instrucción con el prompt para máxima compatibilidad
+                    response = model.generate_content(f"{instruction}\n\nSOLICITUD: {prompt}")
                     res_final = response.text
                     if res_final: break
                 except:
                     continue
 
-            if not res_final: return "❌ Error de conexión o API Key no válida para Gemini."
+            if not res_final: return "❌ Error: La clave no tiene modelos disponibles o hay un problema de cuota en Google AI Studio."
 
-        # --- REFUERZO DE LIMPIEZA (FILTRO POST-PROCESADO) ---
-        # Si la IA ha incluido basura antes del primer título, la cortamos programáticamente.
+        # --- LIMPIEZA DE PREÁMBULOS ---
         if "#" in res_final:
             res_final = res_final[res_final.find("#"):]
 
