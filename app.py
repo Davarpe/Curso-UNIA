@@ -88,12 +88,17 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA REFORZADO (BÚSQUEDA AUTOMÁTICA DE MODELOS ACTIVOS) ---
+# --- MOTOR IA REFORZADO (BLOQUEO DE RAZONAMIENTO) ---
 def llamar_ia_automatica(prompt, key):
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    system_instruction = "Responde solo con el texto del informe en español. No pienses en voz alta. No des opciones. No saludes. No hagas preámbulos. Entrega directamente el contenido solicitado."
+    # Instrucción técnica para evitar el "Drafting" y razonamientos
+    system_instruction = (
+        "Eres un autómata de generación de informes. Tu salida debe ser ÚNICAMENTE el texto final en Markdown. "
+        "PROHIBIDO: preámbulos, razonamientos, planes de redacción ('Drafting'), comprobaciones o notas. "
+        "REGLA DE ORO: Empieza directamente con '# Título'. LENGUAJE: Español."
+    )
 
     try:
         # CASO OPENAI
@@ -112,38 +117,40 @@ def llamar_ia_automatica(prompt, key):
         # CASO GOOGLE
         else:
             genai.configure(api_key=key)
-
-            # Buscamos qué modelos tiene permitidos esta clave específica
+            # Buscamos modelos permitidos
             modelos_permitidos = []
             try:
                 for m in genai.list_models():
                     if 'generateContent' in m.supported_generation_methods:
                         modelos_permitidos.append(m.name)
             except:
-                # Si la clave no permite listar, probamos con los nombres estándar
                 modelos_permitidos = ['models/gemini-1.5-flash', 'models/gemini-pro']
 
             ultimo_error = ""
             for nombre_modelo in modelos_permitidos:
                 try:
-                    # Intentamos la llamada directa
                     model = genai.GenerativeModel(
                         model_name=nombre_modelo,
                         system_instruction=system_instruction
                     )
-                    response = model.generate_content(prompt)
+                    # Forzamos que no incluya el prompt en la respuesta
+                    response = model.generate_content(
+                        prompt,
+                        generation_config=genai.types.GenerationConfig(temperature=0.1)
+                    )
                     return response.text
                 except:
                     try:
-                        # Fallback por si el sistema no acepta system_instruction
+                        # Fallback: Inyectamos la instrucción de forma más severa
                         model = genai.GenerativeModel(nombre_modelo)
-                        response = model.generate_content(f"{system_instruction}\n\nSolicitud: {prompt}")
+                        prompt_estricto = f"{system_instruction}\n\nSOLICITUD: {prompt}\n\nSALIDA (Empezando con '#'):"
+                        response = model.generate_content(prompt_estricto)
                         return response.text
                     except Exception as e:
                         ultimo_error = str(e)
                         continue
 
-            return f"❌ Error de conexión o API Key: No se encontró ningún modelo de Gemini activo para esta clave. Verifica el estado en Google AI Studio."
+            return f"❌ Error de conexión o API Key: No se encontró modelo activo. {ultimo_error}"
 
     except Exception as e:
         return f"❌ Error crítico: {str(e)}"
@@ -211,7 +218,7 @@ elif menu in OPCIONES_REPORTE:
     st.title(menu)
     if st.button(f"GENERAR INFORME", use_container_width=True):
         with st.spinner(f"Analizando {ticker_final}..."):
-            st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
+            st.session_state.reports[menu] = llamar_ia_automatica(f"Realiza un {menu} para {ticker_final}", key)
 
     content = st.session_state.reports.get(menu, "")
     if content:
