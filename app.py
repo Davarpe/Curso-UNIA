@@ -93,8 +93,12 @@ def llamar_ia_automatica(prompt, key):
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    # Instrucción de sistema para obligar a dar solo la respuesta final
-    instruccion_sistema = "IMPORTANTE: Entrega directamente la respuesta final solicitada. No incluyas razonamientos internos, pensamientos, preámbulos ni auto-correcciones."
+    # Instrucción técnica externa para el comportamiento del modelo
+    instruccion_stricta = (
+        "Actúa como un analista financiero experto. Entrega directamente el resultado final. "
+        "Está TERMINANTEMENTE PROHIBIDO incluir razonamientos internos, pensamientos, planes de redacción, "
+        "preámbulos o auto-correcciones. Responde únicamente con el informe final en español."
+    )
 
     try:
         # CASO OPENAI
@@ -103,7 +107,7 @@ def llamar_ia_automatica(prompt, key):
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": instruccion_sistema},
+                    {"role": "system", "content": instruccion_stricta},
                     {"role": "user", "content": prompt}
                 ]
             )
@@ -123,18 +127,19 @@ def llamar_ia_automatica(prompt, key):
             ultimo_error = ""
             for nombre_modelo in modelos_disponibles:
                 try:
-                    # Se configura el modelo con la instrucción de sistema
+                    # Configuración técnica del modelo para ignorar razonamiento interno
                     model = genai.GenerativeModel(
                         model_name=nombre_modelo,
-                        system_instruction=instruccion_sistema
+                        system_instruction=instruccion_stricta
                     )
                     response = model.generate_content(prompt)
                     return response.text
                 except Exception as e:
-                    # Fallback por si la versión de la librería no soporta system_instruction directamente
+                    # Fallback para versiones de API que no aceptan system_instruction
                     try:
                         model = genai.GenerativeModel(nombre_modelo)
-                        response = model.generate_content(f"{instruccion_sistema}\n\nSolicitud: {prompt}")
+                        full_prompt = f"{instruccion_stricta}\n\nSOLICITUD: {prompt}"
+                        response = model.generate_content(full_prompt)
                         return response.text
                     except:
                         ultimo_error = str(e)
