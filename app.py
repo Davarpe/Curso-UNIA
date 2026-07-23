@@ -136,7 +136,7 @@ if not st.session_state.terms:
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("⚙️ Configuración")
-    key = st.text_input("API Key:", type="password", help="La web detectará automáticamente el proveedor de API Key. Si no sabes cómo conseguir la tuya, puedes hacerlo con tu cuenta de Google de manera gratuita aquí: Google AI Studio(https://aistudio.google.com/app/apikey).")
+    key = st.text_input("API Key:", type="password", help="La web detectará automáticamente el proveedor de API Key. Si no sabes cómo conseguir la tuya, puedes hacerlo con tu cuenta de Google de manera gratuita aquí: Google AI Studio https://aistudio.google.com/app/apikey.")
 
     st.divider()
     st.subheader("🔍 Buscador")
