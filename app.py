@@ -97,8 +97,8 @@ with st.sidebar:
     key = st.text_input("API Key:", type="password", help="La web detectará automáticamente el proveedor de API Key. Si no sabes cómo conseguir la tuya, puedes hacerlo con tu cuenta de Google de manera gratuita aquí: [Google AI Studio](https://aistudio.google.com/app/apikey).")
 
     st.divider()
-    st.subheader("🔍 Buscador", help="Selecciona del menú desplegable o escribe por nombre o Ticker para filtrar. Ejemplo: 'Apple', 'Bitcoin', 'Inditex'...")
-    busqueda = st.selectbox("Activo:", options=list(TICKERS_DB.keys()))
+    st.subheader("🔍 Buscador")
+    busqueda = st.selectbox("Activo:", help="Selecciona del menú desplegable o escribe por nombre o Ticker para filtrar. Ejemplo: 'Apple', 'Bitcoin', 'Inditex'...", options=list(TICKERS_DB.keys()))
     ticker_final = TICKERS_DB[busqueda]
     if ticker_final == "MANUAL": ticker_final = st.text_input("Escribe Ticker:").upper()
     else: st.info(f"Ticker: **{ticker_final}**")
