@@ -79,7 +79,6 @@ def export_docx(text, title):
 if 'terms' not in st.session_state: st.session_state.terms = False
 if 'reports' not in st.session_state: st.session_state.reports = {opt: "" for opt in OPCIONES_REPORTE}
 if 'chat' not in st.session_state: st.session_state.chat = []
-if 'view_mode' not in st.session_state: st.session_state.view_mode = 'analisis'
 if 'show_chat' not in st.session_state: st.session_state.show_chat = False
 
 # --- PANTALLA LEGAL ---
@@ -95,7 +94,7 @@ if not st.session_state.terms:
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("⚙️ Configuración")
-    key = st.text_input("API Key:", type="password", help="Detecta Gemini (AIza) o OpenAI (sk-). [Consigue Gemini gratis aquí](https://aistudio.google.com/app/apikey)")
+    key = st.text_input("API Key:", type="password", help="Detecta Gemini (AIza) o OpenAI (sk-).")
 
     st.divider()
     st.subheader("🔍 Buscador")
@@ -105,65 +104,59 @@ with st.sidebar:
     else: st.info(f"Ticker: **{ticker_final}**")
 
     st.divider()
-    # Si el usuario cambia de reporte, volvemos automáticamente al modo análisis
-    menu = st.radio("Secciones:", OPCIONES_REPORTE + ["📂 COMPILACIÓN FINAL"])
-    if menu: st.session_state.view_mode = 'analisis'
+    # CRÉDITOS se añade al final de la lista de navegación
+    menu = st.radio("Navegación:", OPCIONES_REPORTE + ["📂 COMPILACIÓN FINAL", "📜 CRÉDITOS"])
 
     st.divider()
-    col1, col2 = st.columns(2)
-    with col1:
-        btn_label = "🟢 CHAT ON" if st.session_state.show_chat else "💬 ASISTENTE"
-        if st.button(btn_label, use_container_width=True):
-            st.session_state.show_chat = not st.session_state.show_chat
-            st.rerun()
-    with col2:
-        if st.button("📜 CRÉDITOS", use_container_width=True):
-            st.session_state.view_mode = 'creditos'
-            st.rerun()
+    btn_label = "🟢 CHAT ACTIVO" if st.session_state.show_chat else "💬 ABRIR ASISTENTE IA"
+    if st.button(btn_label, use_container_width=True):
+        st.session_state.show_chat = not st.session_state.show_chat
+        st.rerun()
 
 # --- ÁREA DE CONTENIDO PRINCIPAL ---
 
-# MODO CRÉDITOS (Limpia la pantalla)
-if st.session_state.view_mode == 'creditos':
+# MODO CRÉDITOS
+if menu == "📜 CRÉDITOS":
     st.title("📜 Créditos del Proyecto")
     st.subheader("Lorem Ipsum Título")
     st.write("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.")
-    if st.button("Volver al Análisis"):
-        st.session_state.view_mode = 'analisis'
-        st.rerun()
 
-# MODO ANÁLISIS (Muestra informes)
-else:
+# MODO ANÁLISIS INDIVIDUAL
+elif menu in OPCIONES_REPORTE:
     st.title(menu)
-    if menu in OPCIONES_REPORTE:
-        if st.button(f"GENERAR INFORME"):
-            with st.spinner(f"Analizando {ticker_final}..."):
-                st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
+    if st.button(f"GENERAR INFORME"):
+        with st.spinner(f"Analizando {ticker_final}..."):
+            st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
 
-        content = st.session_state.reports.get(menu, "")
-        if content:
-            st.markdown(content)
-            btn_doc = export_docx(content, f"{menu} - {ticker_final}")
-            st.download_button("📥 DESCARGAR DOCX", btn_doc, f"{ticker_final}_{menu}.docx")
+    content = st.session_state.reports.get(menu, "")
+    if content:
+        st.subheader("VISUALIZADOR")
+        st.markdown(content)
+        btn_doc = export_docx(content, f"{menu} - {ticker_final}")
+        st.download_button("📥 DESCARGAR DOCX", btn_doc, f"{ticker_final}_{menu}.docx")
+    else:
+        st.info("Selecciona un ticker y pulsa generar.")
+
+# MODO COMPILACIÓN
+elif menu == "📂 COMPILACIÓN FINAL":
+    st.title("📂 Informe Integral")
+    if st.button("GENERAR COMPILACIÓN TOTAL"):
+        todo = "\n\n".join([f"# {k}\n{v}" for k, v in st.session_state.reports.items() if v])
+        if todo:
+            with st.spinner("Compilando..."):
+                res = llamar_ia_automatica(f"Resumen de 10 puntos y conclusiones de:\n{todo}", key)
+                st.session_state.final = f"{todo}\n\n# RESUMEN Y CONCLUSIONES\n{res}"
         else:
-            st.info("Pulsa el botón para generar el informe con IA.")
+            st.error("No hay informes previos generados.")
 
-    elif menu == "📂 COMPILACIÓN FINAL":
-        if st.button("GENERAR COMPILACIÓN TOTAL"):
-            todo = "\n\n".join([f"# {k}\n{v}" for k, v in st.session_state.reports.items() if v])
-            if todo:
-                with st.spinner("Compilando..."):
-                    res = llamar_ia_automatica(f"Resumen de 10 puntos y conclusiones de:\n{todo}", key)
-                    st.session_state.final = f"{todo}\n\n# RESUMEN Y CONCLUSIONES\n{res}"
-        if 'final' in st.session_state:
-            st.markdown(st.session_state.final)
-            f_btn = export_docx(st.session_state.final, f"COMPLETO - {ticker_final}")
-            st.download_button("📥 DESCARGAR INFORME COMPLETO", f_btn, f"FINAL_{ticker_final}.docx")
+    if 'final' in st.session_state:
+        st.markdown(st.session_state.final)
+        f_btn = export_docx(st.session_state.final, f"COMPLETO - {ticker_final}")
+        st.download_button("📥 DESCARGAR INFORME COMPLETO", f_btn, f"FINAL_{ticker_final}.docx")
 
-# --- BURBUJA DE CHAT FLOTANTE (SIEMPRE ENCIMA) ---
+# --- BURBUJA DE CHAT FLOTANTE (ESTA FUERA DEL IF/ELSE PARA QUE SEA PERSISTENTE) ---
 if st.session_state.show_chat:
     with st.container():
-        # Div detectado por CSS para posicionamiento fijo
         st.markdown('<div class="floating-chat-box">', unsafe_allow_html=True)
 
         c1, c2 = st.columns([0.85, 0.15])
