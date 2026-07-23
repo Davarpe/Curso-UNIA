@@ -6,12 +6,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
 
 # Configuración de página
-st.set_page_config(page_title="IA Market Research Universal", layout="wide")
+st.set_page_config(page_title="IA Market Research - FREE MODE", layout="wide")
 
 # --- CSS ---
 st.markdown("""
     <style>
-    .footer-ia { position: fixed; left: 20px; bottom: 20px; font-size: 10px; color: #888; z-index: 100; }
+    .footer-ia { position: fixed; left: 10px; bottom: 10px; font-size: 10px; color: #888; z-index: 100; }
     </style>
     <div class="footer-ia">GENERADO CON IA</div>
     """, unsafe_allow_html=True)
@@ -47,10 +47,19 @@ def create_docx(text, title):
     buffer.seek(0)
     return buffer
 
-def ask_ia(prompt, key, base_url, model):
+def ask_ia(prompt, key, provider):
     try:
-        # Aquí configuramos cualquier proveedor
-        client = OpenAI(api_key=key, base_url=base_url if base_url else None)
+        if provider == "Google Gemini (GRATIS)":
+            # Usamos el endpoint de Google compatible con OpenAI
+            client = OpenAI(
+                api_key=key,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            )
+            model = "gemini-1.5-flash"
+        else:
+            client = OpenAI(api_key=key)
+            model = "gpt-4o-mini"
+
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": "Eres un analista financiero experto."},
@@ -58,90 +67,73 @@ def ask_ia(prompt, key, base_url, model):
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"❌ ERROR: {str(e)}\n\n(Asegúrate de que la API Key y el modelo sean correctos para el proveedor seleccionado)"
+        return f"❌ ERROR: {str(e)}"
 
 # --- 1. CONDICIONES ---
 if not st.session_state.terms_accepted:
     st.title("⚖️ Condiciones de Uso")
-    st.warning("Debe aceptar para continuar.")
-    st.write("El creador no se hace responsable de las decisiones financieras. Los datos son generados por IA.")
+    st.write("Esta aplicación es para uso educativo. El creador se exime de toda responsabilidad por decisiones de inversión.")
     if st.button("ACEPTO LOS TÉRMINOS"):
         st.session_state.terms_accepted = True
         st.rerun()
     st.stop()
 
-# --- 2. SIDEBAR CONFIGURACIÓN UNIVERSAL ---
+# --- 2. SIDEBAR ---
 with st.sidebar:
-    st.title("⚙️ Configuración IA")
-    api_key = st.text_input("1. API Key:", type="password", placeholder="sk-...")
-    
-    # Esto permite que funcione con cualquier proveedor
-    provider = st.selectbox("2. Proveedor / URL:", [
-        "OpenAI (Predeterminado)", 
-        "OpenRouter (Cualquier IA)", 
-        "Groq", 
-        "Personalizado (Base URL)"
-    ])
-    
-    base_url = None
-    model = "gpt-4o-mini" # Modelo por defecto
-    
-    if provider == "OpenRouter (Cualquier IA)":
-        base_url = "https://openrouter.ai/api/v1"
-        model = "google/gemini-pro-1.5" # Ejemplo para OpenRouter
-    elif provider == "Groq":
-        base_url = "https://api.groq.com/openai/v1"
-        model = "llama3-8b-8192"
-    elif provider == "Personalizado (Base URL)":
-        base_url = st.text_input("Introduce la Base URL:")
-        model = st.text_input("Nombre del modelo:", value="gpt-3.5-turbo")
+    st.title("⚙️ Configuración")
+    provider = st.selectbox("Elegir Proveedor:", ["Google Gemini (GRATIS)", "OpenAI (De Pago)"])
+    api_key = st.text_input("Introduce tu API KEY:", type="password")
+    ticker = st.text_input("Ticker:", "AAPL").upper()
+    menu = st.radio("Secciones:", OPCIONES_INFORME + ["📂 COMPILACIÓN FINAL"])
 
-    st.divider()
-    ticker = st.text_input("Ticker del Valor:", "AAPL").upper()
-    menu = st.radio("Menú:", OPCIONES_INFORME + ["📂 COMPILACIÓN TOTAL"])
-
-# --- 3. LÓGICA ---
+# --- 3. LÓGICA DE INFORMES ---
 if menu in OPCIONES_INFORME:
     st.title(menu)
-    if st.button(f"🚀 GENERAR INFORME"):
-        if not api_key: st.error("Introduce la API Key")
+    if st.button(f"GENERACIÓN DE INFORME"):
+        if not api_key: st.error("Falta la clave API")
         else:
-            with st.spinner("IA trabajando..."):
-                st.session_state.reports[menu] = ask_ia(f"Análisis {menu} para {ticker}", api_key, base_url, model)
+            with st.spinner("IA analizando..."):
+                st.session_state.reports[menu] = ask_ia(f"Haz un {menu} de {ticker}", api_key, provider)
 
     if st.session_state.reports.get(menu):
-        st.subheader("VISUALIZADOR")
+        st.subheader("VISUALIZADOR DE INFORME")
         st.markdown(st.session_state.reports[menu])
-        btn = create_docx(st.session_state.reports[menu], f"{menu} {ticker}")
-        st.download_button("📥 DESCARGAR DOCX", btn, f"{ticker}_{menu}.docx")
+        docx = create_docx(st.session_state.reports[menu], f"{menu} - {ticker}")
+        st.download_button("📥 DESCARGAR INFORME EN DOCX", docx, f"{ticker}_{menu}.docx")
 
-elif menu == "📂 COMPILACIÓN TOTAL":
-    st.title("📂 Compilación")
-    if st.button("🔄 COMPILAR TODO"):
-        acumulado = "\n\n".join([f"## {k}\n{v}" for k, v in st.session_state.reports.items() if v])
-        if not acumulado: st.error("No hay informes previos.")
+# --- 4. COMPILACIÓN ---
+elif menu == "📂 COMPILACIÓN FINAL":
+    st.title("📂 Compilación de todos los informes")
+    if st.button("GENERAR COMPILACIÓN Y RESUMEN"):
+        textos = "\n\n".join([f"## {k}\n{v}" for k, v in st.session_state.reports.items() if v])
+        if not textos: st.error("Genera primero los otros informes.")
         else:
-            with st.spinner("Resumiendo..."):
-                res = ask_ia(f"Resume estos informes de {ticker} en 10 puntos y conclusiones:\n{acumulado}", api_key, base_url, model)
-                st.session_state.full_report = f"{acumulado}\n\n# RESUMEN Y CONCLUSIONES\n{res}"
-    
+            with st.spinner("Compilando..."):
+                res = ask_ia(f"Basado en esto de {ticker}:\n{textos}\n\nResumen en 10 puntos y conclusiones.", api_key, provider)
+                st.session_state.full_report = f"{textos}\n\n# RESUMEN Y CONCLUSIONES\n{res}"
+
     if 'full_report' in st.session_state:
         st.markdown(st.session_state.full_report)
-        btn_f = create_docx(st.session_state.full_report, f"Compilado {ticker}")
-        st.download_button("📥 DESCARGAR COMPILACIÓN", btn_f, f"COMPLETO_{ticker}.docx")
+        docx_f = create_docx(st.session_state.full_report, f"Informe Integral {ticker}")
+        st.download_button("📥 DESCARGAR INFORME COMPLETO", doc_f, f"COMPLETO_{ticker}.docx")
 
-# --- 4. AYUDA ---
+# --- 5. AYUDA ---
 with st.sidebar:
     st.markdown("---")
     if st.button("❓ AYUDA"): st.session_state.show_help = not st.session_state.get('show_help', False)
 
 if st.session_state.get('show_help'):
-    with st.expander("ASISTENTE IA", expanded=True):
-        chat_c = st.container(height=300)
-        for m in st.session_state.chat_history: chat_c.chat_message(m["role"]).write(m["content"])
-        if p := st.chat_input("Pregunta..."):
+    with st.expander("ASISTENTE DE AYUDA (PANTALLA COMPLETA)", expanded=True):
+        full = st.toggle("Modo Pantalla Completa")
+        h = 600 if full else 300
+        container = st.container(height=h)
+        for m in st.session_state.chat_history: container.chat_message(m["role"]).write(m["content"])
+        if p := st.chat_input("Escribe tu duda..."):
             st.session_state.chat_history.append({"role":"user","content":p})
-            chat_c.chat_message("user").write(p)
-            r = ask_ia(p, api_key, base_url, model)
+            container.chat_message("user").write(p)
+            r = ask_ia(p, api_key, provider)
             st.session_state.chat_history.append({"role":"assistant","content":r})
-            chat_c.chat_message("assistant").write(r)
+            container.chat_message("assistant").write(r)
+        if st.session_state.chat_history:
+            chat_txt = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat_history])
+            st.download_button("Descargar Conversación", chat_txt, "ayuda.txt")
