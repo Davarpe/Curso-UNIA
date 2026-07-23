@@ -9,23 +9,55 @@ import io
 # --- CONFIGURACIÓN E INTERFAZ ---
 st.set_page_config(page_title="IA Market Research Pro", layout="wide", page_icon="📈")
 
-# --- CSS: BURBUJA FLOTANTE Y LEYENDA ---
+# --- CSS: OPTIMIZACIÓN RESPONSIVA (MÓVILES Y TABLETS) ---
 st.markdown("""
     <style>
-    .footer-ia { position: fixed; left: 10px; bottom: 10px; font-size: 10px; color: #888; z-index: 99; }
+    /* Leyenda inferior izquierda ajustable */
+    .footer-ia {
+        position: fixed;
+        left: 10px;
+        bottom: 10px;
+        font-size: 9px;
+        color: #888;
+        z-index: 99;
+        background-color: rgba(14, 17, 23, 0.8);
+        padding: 2px 5px;
+        border-radius: 3px;
+    }
 
-    /* Burbuja de Chat Flotante */
+    /* Burbuja de Chat Flotante Responsiva */
     [data-testid="stVerticalBlock"] > div:has(div.floating-chat-box) {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 380px;
+        width: 380px; /* Ancho en escritorio */
+        max-width: 90vw; /* Ancho máximo en móviles (90% del ancho de pantalla) */
         background-color: #1E1E1E;
         border: 1px solid #4A90E2;
         border-radius: 15px;
-        padding: 15px;
+        padding: 12px;
         z-index: 10000;
         box-shadow: 0px 10px 30px rgba(0,0,0,0.8);
+    }
+
+    /* Ajustes específicos para pantallas pequeñas (móviles) */
+    @media (max-width: 768px) {
+        [data-testid="stVerticalBlock"] > div:has(div.floating-chat-box) {
+            right: 5vw;
+            left: 5vw;
+            width: 90vw;
+            bottom: 15px;
+        }
+        /* Ajuste de márgenes para que el contenido principal no sea tapado por la burbuja */
+        .main .block-container {
+            padding-bottom: 100px;
+        }
+    }
+
+    /* Mejora de legibilidad en tablas/código para móviles */
+    pre {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
     }
     </style>
     <div class="footer-ia">GENERADO CON IA</div>
@@ -86,7 +118,7 @@ if not st.session_state.terms:
     st.title("⚖️ Condiciones de Uso")
     st.error("AVISO LEGAL")
     st.write('Esta web-app nace como un ejercicio práctico desarrollado con IA para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO ES ASESORÍA FINANCIERA. El creador se exime de cualquier responsabilidad por su uso.')
-    if st.button("ACEPTO LAS CONDICIONES"):
+    if st.button("ACEPTO LAS CONDICIONES", use_container_width=True):
         st.session_state.terms = True
         st.rerun()
     st.stop()
@@ -104,7 +136,6 @@ with st.sidebar:
     else: st.info(f"Ticker: **{ticker_final}**")
 
     st.divider()
-    # CRÉDITOS se añade al final de la lista de navegación
     menu = st.radio("Navegación:", OPCIONES_REPORTE + ["📂 COMPILACIÓN FINAL", "📜 CRÉDITOS"])
 
     st.divider()
@@ -115,16 +146,14 @@ with st.sidebar:
 
 # --- ÁREA DE CONTENIDO PRINCIPAL ---
 
-# MODO CRÉDITOS
 if menu == "📜 CRÉDITOS":
     st.title("📜 Créditos del Proyecto")
     st.subheader("Aplicación para análisis de valores financieros")
     st.write('Esta es una herramienta desarrollada por David Ariza en Google AI Studio, usando 81183 tokens, para el curso "10 talleres de IA: herramientas gratuitas del ecosistema de Google aplicadas a la educación, la empresa y las finanzas" organizado por la UNIA (www.unia.es). NO DEBE CONSIDERARSE COMO ASESORÍA FINANCIERA.')
 
-# MODO ANÁLISIS INDIVIDUAL
 elif menu in OPCIONES_REPORTE:
     st.title(menu)
-    if st.button(f"GENERAR INFORME"):
+    if st.button(f"GENERAR INFORME", use_container_width=True):
         with st.spinner(f"Analizando {ticker_final}..."):
             st.session_state.reports[menu] = llamar_ia_automatica(f"Informe {menu} para {ticker_final}", key)
 
@@ -133,14 +162,13 @@ elif menu in OPCIONES_REPORTE:
         st.subheader("VISUALIZADOR")
         st.markdown(content)
         btn_doc = export_docx(content, f"{menu} - {ticker_final}")
-        st.download_button("📥 DESCARGAR DOCX", btn_doc, f"{ticker_final}_{menu}.docx")
+        st.download_button("📥 DESCARGAR DOCX", btn_doc, f"{ticker_final}_{menu}.docx", use_container_width=True)
     else:
         st.info("Selecciona un ticker y pulsa generar.")
 
-# MODO COMPILACIÓN
 elif menu == "📂 COMPILACIÓN FINAL":
     st.title("📂 Informe Integral")
-    if st.button("GENERAR COMPILACIÓN TOTAL"):
+    if st.button("GENERAR COMPILACIÓN TOTAL", use_container_width=True):
         todo = "\n\n".join([f"# {k}\n{v}" for k, v in st.session_state.reports.items() if v])
         if todo:
             with st.spinner("Compilando..."):
@@ -152,14 +180,14 @@ elif menu == "📂 COMPILACIÓN FINAL":
     if 'final' in st.session_state:
         st.markdown(st.session_state.final)
         f_btn = export_docx(st.session_state.final, f"COMPLETO - {ticker_final}")
-        st.download_button("📥 DESCARGAR INFORME COMPLETO", f_btn, f"FINAL_{ticker_final}.docx")
+        st.download_button("📥 DESCARGAR INFORME COMPLETO", f_btn, f"FINAL_{ticker_final}.docx", use_container_width=True)
 
-# --- BURBUJA DE CHAT FLOTANTE (ESTA FUERA DEL IF/ELSE PARA QUE SEA PERSISTENTE) ---
+# --- BURBUJA DE CHAT FLOTANTE ---
 if st.session_state.show_chat:
     with st.container():
         st.markdown('<div class="floating-chat-box">', unsafe_allow_html=True)
 
-        c1, c2 = st.columns([0.85, 0.15])
+        c1, c2 = st.columns([0.8, 0.2])
         c1.subheader("💬 Asistente IA")
         if c2.button("✖️", key="close_chat"):
             st.session_state.show_chat = False
