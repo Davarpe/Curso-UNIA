@@ -88,12 +88,11 @@ def get_ticker_database():
 TICKERS_DB = get_ticker_database()
 OPCIONES_REPORTE = ["📊 Análisis Fundamental", "📈 Análisis Técnico", "🌍 Contexto Macroeconómico", "⚠️ Análisis de Riesgos", "🔮 Proyecciones y Valuación"]
 
-# --- MOTOR IA REFORZADO (ELIMINACIÓN TOTAL DE RAZONAMIENTO Y ERROR 404) ---
+# --- MOTOR IA REFORZADO (BÚSQUEDA AUTOMÁTICA DE MODELOS ACTIVOS) ---
 def llamar_ia_automatica(prompt, key):
     key = str(key).strip()
     if not key: return "❌ Introduce tu API Key."
 
-    # Instrucción de sistema para obligar a dar solo la respuesta final
     system_instruction = "Responde solo con el texto del informe en español. No pienses en voz alta. No des opciones. No saludes. No hagas preámbulos. Entrega directamente el contenido solicitado."
 
     try:
@@ -113,13 +112,21 @@ def llamar_ia_automatica(prompt, key):
         # CASO GOOGLE
         else:
             genai.configure(api_key=key)
-            # Intentamos directamente con los dos nombres de modelos más estables del nivel gratuito
-            modelos_estables = ['gemini-1.5-flash', 'gemini-pro']
+
+            # Buscamos qué modelos tiene permitidos esta clave específica
+            modelos_permitidos = []
+            try:
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        modelos_permitidos.append(m.name)
+            except:
+                # Si la clave no permite listar, probamos con los nombres estándar
+                modelos_permitidos = ['models/gemini-1.5-flash', 'models/gemini-pro']
 
             ultimo_error = ""
-            for nombre_modelo in modelos_estables:
+            for nombre_modelo in modelos_permitidos:
                 try:
-                    # Intentamos el método moderno con system_instruction
+                    # Intentamos la llamada directa
                     model = genai.GenerativeModel(
                         model_name=nombre_modelo,
                         system_instruction=system_instruction
@@ -128,7 +135,7 @@ def llamar_ia_automatica(prompt, key):
                     return response.text
                 except:
                     try:
-                        # Fallback: Inyectar instrucción en el prompt si el método anterior no es soportado
+                        # Fallback por si el sistema no acepta system_instruction
                         model = genai.GenerativeModel(nombre_modelo)
                         response = model.generate_content(f"{system_instruction}\n\nSolicitud: {prompt}")
                         return response.text
@@ -136,7 +143,7 @@ def llamar_ia_automatica(prompt, key):
                         ultimo_error = str(e)
                         continue
 
-            return f"❌ Error de conexión o API Key: La clave no tiene acceso a modelos Gemini Flash o Pro. Revisa tu cuota en Google AI Studio."
+            return f"❌ Error de conexión o API Key: No se encontró ningún modelo de Gemini activo para esta clave. Verifica el estado en Google AI Studio."
 
     except Exception as e:
         return f"❌ Error crítico: {str(e)}"
