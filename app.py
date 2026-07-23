@@ -98,7 +98,7 @@ with st.sidebar:
 
     st.divider()
     st.subheader("🔍 Buscador")
-    help="Selecciona del menú desplegable o escribe por nombre o Ticker para filtrar. Ejemplo: 'Apple', 'Bitcoin', 'Inditex'..."
+    help_text="Selecciona del menú desplegable o escribe por nombre o Ticker para filtrar. Ejemplo: 'Apple', 'Bitcoin', 'Inditex'..."
     busqueda = st.selectbox("Activo:", options=list(TICKERS_DB.keys()))
     ticker_final = TICKERS_DB[busqueda]
     if ticker_final == "MANUAL": ticker_final = st.text_input("Escribe Ticker:").upper()
